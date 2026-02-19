@@ -57,7 +57,7 @@ p <- tree_plot %<+% metadata +
 
 print(p)
 
-#ggsave("/Users/laceyj1/Documents/Safe_Fish_Vibrio/Combined/context_data/ST36_global/Global_extended_ST36_clusters/2025-06-02_treetime/timetree_scaled_by_numdate.pdf", p, width = 8, height = 12)
+#ggsave("timetree_scaled_by_numdate.pdf", p, width = 8, height = 12)
 
 
 ```
