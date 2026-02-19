@@ -1,0 +1,229 @@
+```{r,ST36_map_of_movmenets}
+
+library(tidyverse)
+library(ggplot2)
+library(maps)
+library(grid)  
+
+#### 1) Data inputs adn cleaning 
+
+
+df <- read_csv(
+  "ST36_map_location.csv",
+  col_types = cols(
+    Location  = col_character(),
+    Latitude  = col_double(),
+    Longitude = col_double(),
+    Count     = col_double()
+  )
+)
+
+# Shift to world2 longitudes (0..360) and add Mid AU–NZ hub
+df_world2 <- df %>%
+  mutate(
+    lon_world2 = if_else(Longitude < 0, Longitude + 360, Longitude),
+    lat        = Latitude
+  ) %>%
+  add_row(
+    Location   = "Mid AU-NZ",
+    lon_world2 = 163,
+    lat        = -37,
+    Count      = 1
+  )
+
+# Ensure Spain exists and appears as size=7 samples
+if (!"Spain" %in% df_world2$Location) {
+  df_world2 <- df_world2 %>%
+    add_row(
+      Location   = "Spain",
+      lon_world2 = if_else(-3.7492 < 0, -3.7492 + 360, -3.7492),  # 356.2508
+      lat        = 40.4637,
+      Count      = 7
+    )
+} else {
+  df_world2 <- df_world2 %>%
+    mutate(Count = if_else(Location == "Spain", 7, Count))
+}
+
+# Basemap (Pacific-centred), drop Antarctica
+world2 <- map_data("world2") %>% filter(region != "Antarctica")
+
+
+##### 2) Build hubs & edge tables
+
+
+# AU/NZ targets from Mid AU–NZ
+aus_nz_locs <- c("New South Wales","Northern Territory","Queensland",
+                 "South Australia","Victoria","Western Australia","New Zealand")
+
+mid     <- df_world2 %>% filter(Location == "Mid AU-NZ") %>% slice(1)
+targets <- df_world2 %>% filter(Location %in% aus_nz_locs)
+
+edges_mid_to_targets <- targets %>%
+  mutate(
+    x    = mid$lon_world2, y    = mid$lat,
+    xend = lon_world2,     yend = lat,
+    curvature = scales::rescale(row_number(), to = c(-0.35, 0.35))
+  )
+
+# PNW centroid (Washington + Oregon)
+pnw <- df_world2 %>%
+  filter(Location %in% c("Washington (state)", "Oregon")) %>%
+  summarise(
+    lon_world2 = mean(lon_world2, na.rm = TRUE),
+    lat        = mean(lat,        na.rm = TRUE)
+  ) %>%
+  mutate(Location = "PNW centroid")
+
+# Edge: PNW → Mid AU–NZ (steelblue, thick)
+edge_pnw_to_mid <- tibble(
+  x    = pnw$lon_world2, y    = pnw$lat,
+  xend = mid$lon_world2, yend = mid$lat
+)
+
+# Red edges: PNW → Peru, Peru:Lima, Spain
+dest_red <- df_world2 %>%
+  filter(Location %in% c("Peru", "Peru:Lima", "Spain")) %>%
+  select(Location, lon_world2, lat)
+
+edges_pnw_to_red <- dest_red %>%
+  transmute(
+    x    = pnw$lon_world2, y    = pnw$lat,
+    xend = lon_world2,     yend = lat,
+    Location
+  )
+
+# Split Spain edge for custom colour
+edges_pnw_to_red_other <- edges_pnw_to_red %>% filter(Location != "Spain")
+edge_pnw_to_spain      <- edges_pnw_to_red %>% filter(Location == "Spain")
+
+# Atlantic NE hub (closer to US coast) and burnt-orange targets
+atl_ne <- tibble(
+  Location   = "Atlantic NE",
+  lon_world2 = if_else(-72 < 0, -72 + 360, -72),  # -72° → 288
+  lat        = 38
+)
+
+atl_targets <- df_world2 %>%
+  filter(Location %in% c(
+    "Massachusetts","Connecticut","Maryland","South Carolina",
+    "Indiana","Iowa","Florida","New York","Virginia",
+    "Michigan","Utah","Tennessee","Illinois"
+  ))
+
+edges_atl_to_states <- atl_targets %>%
+  mutate(
+    x    = atl_ne$lon_world2, y    = atl_ne$lat,
+    xend = lon_world2,        yend = lat,
+    curvature = scales::rescale(row_number(), to = c(-0.3, 0.3))
+  )
+
+# PNW → selected regions (purple). Accept both spellings of Montana
+pnw_targets <- df_world2 %>%
+  filter(Location %in% c(
+    "British Columbia","Washington (state)","Connecticut","New York",
+    "Alberta","Alaska","California","Oregon",
+    "Illinois","Montana","Montanna","Tennessee","Minnesota","Utah"
+  ))
+
+edges_pnw_purple <- pnw_targets %>%
+  mutate(
+    x    = pnw$lon_world2, y    = pnw$lat,
+    xend = lon_world2,     yend = lat,
+    curvature = scales::rescale(row_number(), to = c(-0.3, 0.3))
+  )
+
+
+##### 3) Plot all flows in one graphic
+
+
+maps_st36 <- ggplot() +
+  # Basemap
+  geom_polygon(
+    data = world2,
+    aes(x = long, y = lat, group = group),
+    fill = "grey95", color = "grey70", linewidth = 0.2
+  ) +
+  # Burnt orange: Atlantic NE → selected US states
+  geom_curve(
+    data = edges_atl_to_states,
+    aes(x = x, y = y, xend = xend, yend = yend, curvature = curvature),
+    linewidth = 0.7, alpha = 0.9, lineend = "round",
+    arrow = arrow(length = unit(6, "pt"), type = "closed"),
+    color = "black"
+  ) +
+  geom_point(
+    data = atl_ne,
+    aes(x = lon_world2, y = lat),
+    shape = 18, size = 3, color = "black"
+  ) +
+  # Purple: PNW → selected regions
+  geom_curve(
+    data = edges_pnw_purple,
+    aes(x = x, y = y, xend = xend, yend = yend, curvature = curvature),
+    linewidth = 0.8, alpha = 0.9, lineend = "round",
+    arrow = arrow(length = unit(6, "pt"), type = "closed"),
+    color = "black"
+  ) +
+  geom_point(data = pnw, aes(x = lon_world2, y = lat),
+             shape = 17, size = 3, color = "black") +
+  # Red: PNW → Peru & Peru:Lima (thicker)
+  geom_curve(
+    data = edges_pnw_to_red_other,
+    aes(x = x, y = y, xend = xend, yend = yend),
+    curvature = 0.18, linewidth = 2, alpha = 0.95, lineend = "round",
+    arrow = arrow(length = unit(7, "pt"), type = "closed"),
+    color = "red"
+  ) +
+  # Spain edge in custom colour #dfc27d (thicker)
+  geom_curve(
+    data = edge_pnw_to_spain,
+    aes(x = x, y = y, xend = xend, yend = yend),
+    curvature = 0.18, linewidth = 2, alpha = 0.95, lineend = "round",
+    arrow = arrow(length = unit(7, "pt"), type = "closed"),
+    color = "brown"
+  ) +
+  # Steelblue: PNW → Mid AU–NZ (thicker) and Mid AU–NZ → AU/NZ
+  geom_curve(
+    data = edge_pnw_to_mid,
+    aes(x = x, y = y, xend = xend, yend = yend),
+    curvature = 0.25, linewidth = 2, alpha = 0.9, lineend = "round",
+    arrow = arrow(length = unit(7, "pt"), type = "closed"),
+    color = "steelblue"
+  ) +
+  geom_curve(
+    data = edges_mid_to_targets,
+    aes(x = x, y = y, xend = xend, yend = yend, curvature = curvature),
+    linewidth = 0.45, alpha = 0.85, lineend = "round",
+    arrow = arrow(length = unit(6, "pt"), type = "closed"),
+    color = "steelblue"
+  ) +
+  # Points (Mid AU–NZ = red, AU/NZ = steelblue, others black)
+  geom_point(
+    data = df_world2 %>%
+      mutate(color_group = case_when(
+        Location == "Mid AU-NZ" ~ "mid",
+        Location %in% aus_nz_locs ~ "aunz",
+        TRUE ~ "other"
+      )),
+    aes(x = lon_world2, y = lat, size = Count, color = color_group),
+    alpha = 0.9
+  ) +
+  scale_color_manual(values = c(mid = "red", aunz = "steelblue", other = "black"),
+                     guide = "none") +
+  scale_size_area(max_size = 5, breaks = c(1, 5, 10, 25, 50)) +
+  coord_quickmap(xlim = c(100, 365), ylim = c(-60, 74)) +
+  labs(
+    title = "Global movement of ST36",
+    size  = "Count"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(panel.grid = element_blank(), axis.text = element_blank())
+
+
+maps_st36
+
+
+##### 4) Save figure output 
+
+ggsave("ST36_world_movement.pdf", maps_st36, width = 12, height = 8)
