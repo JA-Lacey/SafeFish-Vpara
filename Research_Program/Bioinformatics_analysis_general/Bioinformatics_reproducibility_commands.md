@@ -90,3 +90,29 @@ Notes on command run: V_para.tab input file in the format of #strainID and #path
 cat V_para_reads.tab | parallel -j 10 --colsep '\t' 'snippy --R1 {2} --R2 {3} --outdir snippy/{1} --ref contigs/reference.fa’ 
 ```
 Notes on command run: V_para_reads.tab input file in the format of #strainID and #path_to_reads1, #path_to_reads2
+
+Tool: PopPUNK
+Github: https://github.com/bacpop/PopPUNK
+
+```bash
+#build the database
+
+poppunk --create-db --output vibrio_database --r-files vibrio_poppunk_list.txt --threads 24 --qc-filter continue
+
+#apply a model to the data
+
+poppunk --fit-model bgmm --output vibrio_bgmm_model --ref-db vibrio_database --threads 24
+
+#refine the model
+
+poppunk --fit-model refine --output vibrio_bgmm_refined_model --ref-db vibrio_database --model-dir vibrio_bgmm_model --threads 24 --graph-weights
+
+#make the visualiations
+
+poppunk_visualise --distances vibrio_bgmm_refined_model/vibrio_bgmm_refined_model.dists --ref-db vibrio_bgmm_refined_model --grapetree --microreact --tree both --output vibrio_poppunk_visualise_mst_out/ --threads 36
+
+#assign new genomes with existitng database
+
+poppunk_assign --db vibrio_bgmm_refined_model/vibrio_bgmm_refined_model --query strain_input.tab --output poppunk_clusters --threads 20
+
+```
