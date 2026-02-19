@@ -1,0 +1,63 @@
+```{r, ST36 Timed corrected phylogeny from Treetime }
+
+# Ignore negative branches
+options(ignore.negative.edge = TRUE)
+
+# Load libraries
+library(ggtree)
+library(treeio)
+library(ggplot2)
+library(dplyr)
+library(readr)
+library(ape)
+
+# Load tree and metadata
+tree <- read.nexus("/treetime/core_recomb_removed.fasta.timetree.nex")
+metadata <- read_csv("ST36_Global_data.csv")
+dates <- read_tsv("treetime/dates.tsv", comment = "#") %>%
+  rename(label = node,
+         numdate = `numeric date`,
+         lower = `lower bound`,
+         upper = `upper bound`)
+
+# Extract tree plotting data
+tree_plot <- ggtree(tree, mrsd = "2025-03-07", branch.length = "numdate", ladderize = TRUE)
+tree_data <- tree_plot$data
+
+# Join CI dates with tree positions
+tree_data <- tree_data %>%
+  left_join(dates, by = "label")
+
+# Define gridlines
+year_breaks <- seq(1970, 2025, by = 5)
+
+# Plot
+p <- tree_plot %<+% metadata +
+  geom_segment(data = tree_data %>% filter(!is.na(lower), !is.na(upper)),
+               aes(x = lower, xend = upper, y = y, yend = y),
+               inherit.aes = FALSE,
+               color = "black", alpha = 0.3, size = 2) +  # Confidence bars
+  geom_tippoint(aes(color = Location), size = 2) +
+  geom_vline(xintercept = year_breaks, linetype = "dotted", color = "gray70", size = 0.3) +
+  scale_color_manual(name = "Location", values = c(
+    "Australia" = "#4daf4a",
+    "New Zealand" = "#377eb8",
+    "USA" = "grey",
+    "China" = "#e41a1c",
+    "United Kingdom" = "#984ea3",
+    "Canada" = "#ff7f00",
+    "Spain" = "#b15928"
+  )) +
+  scale_x_continuous(name = "Year", breaks = year_breaks) +
+  theme_tree2() +
+  labs(
+    title = "Time-scaled Phylogenetic Tree of ST36 Vibrio parahaemolyticus",
+    subtitle = "Horizontal bars show node date confidence intervals"
+  )
+
+print(p)
+
+#ggsave("/Users/laceyj1/Documents/Safe_Fish_Vibrio/Combined/context_data/ST36_global/Global_extended_ST36_clusters/2025-06-02_treetime/timetree_scaled_by_numdate.pdf", p, width = 8, height = 12)
+
+
+```
