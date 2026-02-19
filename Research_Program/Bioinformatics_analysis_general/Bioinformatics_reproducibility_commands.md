@@ -72,3 +72,21 @@ cat V_para.tab | parallel -j 50 --colsep '\t' 'mlst --quiet --full --blastdb /ho
 ```
 
 Notes on command run: mlst does auto-detecion of best fit scheme for typing. 
+
+**SNP-calling and mutaiton deteciton from conitgs and reads**
+
+Tool: snippy
+Verion: 4.4.5
+Github: https://github.com/tseemann/snippy
+
+Command run:
+
+```bash
+cat V_para.tab | parallel -j 10 --colsep '\t' 'snippy --ctgs {2} --outdir snippy/{1} --ref contigs/reference.fa’ 
+```
+Notes on command run: V_para.tab input file in the format of #strainID and #path_to_contigs
+
+```bash
+cat V_para_reads.tab | parallel -j 10 --colsep '\t' 'snippy --R1 {2} --R2 {3} --outdir snippy/{1} --ref contigs/reference.fa’ 
+```
+Notes on command run: V_para_reads.tab input file in the format of #strainID and #path_to_reads1, #path_to_reads2
