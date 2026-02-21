@@ -28,6 +28,7 @@ Commands run:
 cat V_para.tab | parallel -j 20 --colsep '\t' 'kaptive assembly /kaptive_db/vibrio_parahaemolyticus_genomoserotyping/VibrioPara_Kaptivedb_O.gbk  /home/shared/db/all-the-bacteria/batch/{3} -o kaptive/{1}_kaptive_Vp_k.tsv 
 
 # O locus
+
 cat V_para.tab | parallel -j 20 --colsep '\t' 'kaptive assembly /kaptive_db/vibrio_parahaemolyticus_genomoserotyping/VibrioPara_Kaptivedb_O.gbk /home/shared/db/all-the-bacteria/batch/{3} -o kaptive/{1}_kaptive_Vp_O.tsv
 ```
 
