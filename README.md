@@ -1,6 +1,9 @@
 # SafeFish-Vpara
 Resources for the National investigation of Vibrio parahaemolyticus in Australia 
 
+<img width="366.5" height="327" alt="V_para_log" src="https://github.com/user-attachments/assets/b3e11ddc-de42-473b-bbdb-2c95a641f732" />
+
+
 This work was funded by The Commonwealth Government of Australia through Safefish 2021-2025 (Fisheries Research and Development Corporation Project 2021-018)
 
 ## SafeFish
