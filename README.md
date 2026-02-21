@@ -18,3 +18,13 @@ There are a number of processes that are currently occurring to address the rese
 * Determined the national volume of Vibrio testing in seafood required in Australia and liaise with Australian commercial laboratories to identify laboratories that will offer NATA certified quantitative Vibrio analysis.
 * Provided technical and financial support to the national collaborative research strategy for _Vibrio parahaemolyticus_
 * Genomic investigation of _Vibrio parahaemolyticus_ through opportunistiy sampling from clinical laboratories and environmental sources. 
+
+## Projects
+* Regional endemicity of _V. parahaemolyticus_ lineages associated with foodbourne outbreaks in Australia 
+* Spatial and Genomic Profiling of Environmental and Oyster-Derived _V. parahaemolyticus_
+* _Vibrio parahaemolyticus_ in Australia/NZ: Current status and future research needs
+
+## Publications
+
+
+## Data Access
